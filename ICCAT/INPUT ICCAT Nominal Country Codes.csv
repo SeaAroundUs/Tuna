@@ -1,0 +1,121 @@
+Flag,CountryGroupID,FishingEntityID
+Albania,6,1
+Algerie,1,2
+Angola,1,4
+Antigua and Barbuda,4,5
+Argentina,11,6
+Aruba,4,120
+Barbados,4,11
+Belize,7,16
+Benin,1,45
+Brazil,11,15
+Cambodia,3,24
+Cameroon,1,25
+Canada,8,26
+Cape Verde,1,27
+Cayman Islands,4,28
+Chile,11,30
+China PR,5,31
+Chinese Taipei,5,32
+Colombia,11,35
+Congo,1,38
+Costa Rica,11,41
+Côte d'Ivoire,1,89
+Cuba,4,43
+Curaçao,4,214
+Dominica,4,47
+Dominican Republic,4,48
+Egypt,1,182
+El Salvador,11,184
+EU.Bulgaria,6,21
+EU.Croatia,6,42
+EU.Cyprus,7,208
+EU.Denmark,13,46
+EU.España,13,165
+EU.Estonia,13,53
+EU.France,13,58
+EU.Germany,13,66
+EU.Greece,6,70
+EU.Ireland,13,86
+EU.Italy,13,88
+EU.Latvia,13,98
+EU.Lithuania,13,101
+EU.Malta,7,106
+EU.Netherlands,13,118
+EU.Poland,13,140
+EU.Portugal,13,141
+EU.Rumania,6,147
+EU.Sweden,13,169
+EU.United Kingdom,13,183
+Falklands,11,55
+Faroe Islands,13,54
+FR.St Pierre et Miquelon,8,153
+Gabon,1,62
+Gambia,1,64
+Georgia,3,63
+Germany Democratic Rep,13,66
+Germany Democratic Rep.,13,66
+Ghana,1,67
+Grenada,4,72
+Guatemala,11,75
+Guinea Bissau,1,142
+Guinea Ecuatorial,1,51
+Guinée Rep.,1,76
+Guyana,11,77
+Honduras,11,79
+ICCAT (RMA),2,1000
+Iceland,13,81
+Israel,3,87
+Jamaica,4,90
+Japan,5,91
+Japan (foreign obs.),5,91
+Korea Rep.,5,95
+Lebanon,3,97
+Liberia,1,99
+Libya,1,100
+Maroc,1,113
+Mauritania,1,108
+Mexico,8,110
+Mixed flags (EU tropical),2,1000
+Mixed flags (FR+ES),13,3000
+Namibia,1,116
+NEI (BIL),2,1000
+NEI (combined),2,1000
+NEI (ETRO),2,1000
+NEI (Flag related),2,1000
+NEI (inflated),2,1000
+NEI (MED),2,1000
+Nigeria,1,125
+Norway,13,128
+Palestine,3,1000
+Panama,7,135
+Philippines,3,138
+Puerto Rico,9,144
+Rumania,6,147
+Russian Federation,10,148
+S. Tomé e Príncipe,1,155
+Saint Kitts and Nevis,4,150
+Senegal,1,157
+Serbia & Montenegro,6,194
+Seychelles,1,158
+Sierra Leone,1,159
+South Africa,1,164
+St. Vincent and Grenadines,4,154
+Sta. Lucia,4,152
+Suriname,11,168
+Syria,3,170
+Togo,1,172
+Trinidad and Tobago,4,175
+Tunisie,1,177
+Turkey,3,178
+U.S.A.,8,187
+U.S.S.R.,12,2000
+UK.Bermuda,4,13
+UK.British Virgin Islands,4,19
+UK.Sta Helena,4,149
+UK.Turks and Caicos,4,179
+Ukraine,6,181
+Uruguay,11,189
+Vanuatu,7,122
+Venezuela,11,190
+Yugoslavia Fed.,6,4000

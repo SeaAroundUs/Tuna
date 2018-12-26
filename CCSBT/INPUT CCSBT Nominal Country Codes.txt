@@ -1,0 +1,12 @@
+CountryName	FishingEntityID	CountryGroupID
+Australia	7	1
+Indonesia	83	2
+Philippines	138	2
+European.Community	165	3
+Taiwan	32	4
+Japan	91	4
+New.Zealand	123	5
+Korea	95	4
+South.Africa	164	6
+Miscellaneous	1000	1000
+Research.and.other	2000	2000

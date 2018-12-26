@@ -1,0 +1,3 @@
+SpeciesName	TaxonKey	SpeciesGroupID
+ALB_C	600142	1
+

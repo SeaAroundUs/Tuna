@@ -1,0 +1,17 @@
+SpeciesName	TaxonKey	SpeciesGroupID
+alb_mt	600142	1
+bet_mt	600146	1
+pbf_mt	614290	1
+skj_mt	600107	1
+yft_mt	600143	1
+blm_mt	600217	2
+bum_mt	600216	2
+mls_mt	600223	2
+swo_mt	600226	2
+ham_mt	500693	5
+mak_mt	500638	5
+ocs_mt	600875	5
+por_mt	600088	5
+fal_mt	600868	5
+thr_mt	500639	5
+bsh_mt	600898	3

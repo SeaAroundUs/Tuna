@@ -1,11 +1,3 @@
-#Coulter et al 2018: Historical expansion of global tuna fisheries - a spatial analysis of catch data
-
-
-#Program Information----
-#Code Authors: Angie Coulter, Tim Cashion, Andres Cisneros-Montemayor
-#Contact Information: Angie Coulter: a.coulter@alumni.ubc.ca  
-#Contact Information: Tim Cashion: t.cashion@oceans.ubc.ca
-#Contact Information: Andres Cisneros-Montemayor: a.cisneros@oceans.ubc.ca  
 #Last updated: September 6th, 2018
 
 #Please note, this script erases the global environment several times to increase the speed

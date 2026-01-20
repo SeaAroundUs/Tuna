@@ -1,0 +1,9 @@
+SpeciesName	TaxonKey	SpeciesGroupID
+alb_c	600142	1
+yft_c	600143	1
+bet_c	600146	1
+mls_c	600223	2
+blm_c	600217	2
+bum_c	600216	2
+swo_c	600226	2
+oth_c	100339	6

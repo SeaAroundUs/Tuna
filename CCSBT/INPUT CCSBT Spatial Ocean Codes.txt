@@ -1,4 +1,0 @@
-OceanName	OceanID
-Atlantic	1
-Indian	2
-Pacific	3

@@ -1,0 +1,4 @@
+SpeciesName	TaxonKey	SpeciesGroupID
+skj_c	600107	1
+yft_c	600143	1
+oth_c	100339	6

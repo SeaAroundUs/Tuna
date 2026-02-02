@@ -1,117 +1,59 @@
 #
 #====IATTC
 #
+
+# Load required packages and function
+library(tidyverse)
+library(reshape2)
+source("proportion_disaggregator.R")
 #--------------------------------------------------Nominal data--------------------------------------------------
-rm(list=ls())
 
 #Read data
-iattc.nom <- read.csv("INPUT IATTC Nominal Catch For Formatting.csv", sep=",")
-iattc.spp <- read.table("input_codes/INPUT IATTC Nominal Species Codes.txt", header=T)
-iattc.gea <- read.table("input_codes/INPUT IATTC Gear Codes.txt", header=T, sep="\t")
-iattc.cou <- read.table("input_codes/INPUT IATTC Nominal Country Codes.txt", header=T, sep="\t")
+nominal_data <- read.csv("INPUT IATTC Nominal Catch For Formatting.csv", sep=",")
+spp_data <- read.table("input_codes/INPUT IATTC Nominal Species Codes.txt", header=T)
+gear_data <- read.table("input_codes/INPUT IATTC Gear Codes.txt", header=T, sep="\t")
+country_data <- read.table("input_codes/INPUT IATTC Nominal Country Codes.txt", header=T, sep="\t")
 
 #Exclude entries with no catch, or for years prior to 1950
-iattc.nom <- iattc.nom[iattc.nom$Year>=1950 & iattc.nom$Catch!=0,]
+nominal_data <- nominal_data[nominal_data$Year>=1950 & nominal_data$Catch!=0,]
 
 #Match country and gear codes
-iattc.N <- merge(iattc.nom, iattc.gea, by= c("Gear"), all.x=T)
-iattc.N <- merge(iattc.N, iattc.cou, by= c("Flag"), all.x=T)
-iattc.N <- merge(iattc.N, iattc.spp, by= c("Species"), all.x=T)
-iattc.N <- iattc.N[ , c("Year","FishingEntityID","CountryGroupID","Layer3GearID","GearGroupID","TaxonKey","SpeciesGroupID","Catch") ]
+combined_df <- nominal_data |> 
+  left_join(gear_data, by = join_by(Gear)) |>
+  left_join(country_data, by = join_by(Flag)) |> 
+  left_join(spp_data, by = join_by(Species)) |>
+  select(c("Year","FishingEntityID","CountryGroupID","Layer3GearID","GearGroupID","TaxonKey","SpeciesGroupID","Catch"))
 
 #All countries split
 #Allocate catch out from "All countries" fishing entity (FishingEntityID= 1000). 
-x= iattc.N[iattc.N$FishingEntityID==1000,]
-y= iattc.N[iattc.N$FishingEntityID!=1000,]
+unknown_df <- combined_df |> filter(FishingEntityID == 1000)
+known_df <- combined_df |> filter(FishingEntityID!=1000)
 
-#Matching by year, gear, and species
-y2= aggregate(y$Catch, by= list(y$Year, y$TaxonKey, y$Layer3GearID), sum)
-colnames(y2)= c("Year","TaxonKey","Layer3GearID","TotalCatch")
+# Match and group based on Year, TaxonKey, and Layer3GearID
+grouping_cols <- c("Year","TaxonKey","Layer3GearID")
+matching_result_1 <- proportional_catch(known_df, unknown_df, grouping_cols)
 
-y3= merge(y, y2, by= c("Year","TaxonKey","Layer3GearID"), all.x=T)
-y3$Proportion= y3$Catch / y3$TotalCatch
-y3= y3[,c("Year","Layer3GearID","GearGroupID","FishingEntityID","CountryGroupID","TaxonKey","SpeciesGroupID","Proportion")]
+# Match and group based on Year, SpeciesGroupID, and Layer3GearID
+grouping_cols <- c("Year", "SpeciesGroupID", "Layer3GearID")
+matching_result_2 <- proportional_catch(known_df, matching_result_1$unmatched_catch, grouping_cols)
 
-z= merge(x, y3, by= c("Year","Layer3GearID","GearGroupID","TaxonKey","SpeciesGroupID"), all.x=T)
-z$PropCatch= z$Catch * z$Proportion
+# Match and group based on Year and Layer3GearID
+grouping_cols <- c("Year", "Layer3GearID")
+matching_result_3 <- proportional_catch(known_df, matching_result_2$unmatched_catch, grouping_cols)
 
-zm1= z[is.na(z$Proportion)==F,]
-znm1= z[is.na(z$Proportion),]
+# Match and group based on Year 
+grouping_cols <- c("Year")
+matching_result_4 <- proportional_catch(known_df, matching_result_3$unmatched_catch, grouping_cols)
 
-zm1= zm1[,c("Year","FishingEntityID.y","CountryGroupID.y","Layer3GearID","GearGroupID","TaxonKey","SpeciesGroupID","PropCatch")]
-colnames(zm1)= c("Year","FishingEntityID","CountryGroupID","Layer3GearID","GearGroupID","TaxonKey","SpeciesGroupID","Catch")
-
-#year, gear and species group
-y2= aggregate(y$Catch, by= list(y$Year, y$SpeciesGroupID, y$Layer3GearID), sum)
-colnames(y2)= c("Year","SpeciesGroupID","Layer3GearID","TotalCatch")
-
-y3= merge(y, y2, by= c("Year","SpeciesGroupID","Layer3GearID"), all.x=T)
-y3$Proportion= y3$Catch / y3$TotalCatch
-y3= y3[,c("Year","SpeciesGroupID","Layer3GearID","GearGroupID","FishingEntityID","CountryGroupID","Proportion")]
-
-z= merge(x, y3, by= c("Year","Layer3GearID","GearGroupID","SpeciesGroupID"), all.x=T)
-z$PropCatch= z$Catch * z$Proportion
-
-zm2= z[is.na(z$Proportion)==F,]
-znm2= z[is.na(z$Proportion),]
-
-zm2= zm2[,c("Year","FishingEntityID.y","CountryGroupID.y","Layer3GearID","GearGroupID","TaxonKey","SpeciesGroupID","PropCatch")]
-colnames(zm2)= c("Year","FishingEntityID","CountryGroupID","Layer3GearID","GearGroupID","TaxonKey","SpeciesGroupID","Catch")
-znm2= znm2[,c("Year","FishingEntityID.x","CountryGroupID.x","Layer3GearID","GearGroupID","TaxonKey","SpeciesGroupID","Catch")]
-colnames(znm2)= c("Year","FishingEntityID","CountryGroupID","Layer3GearID","GearGroupID","TaxonKey","SpeciesGroupID","Catch")
-
-#year and gear
-y2= aggregate(y$Catch, by= list(y$Year, y$Layer3GearID), sum)
-colnames(y2)= c("Year","Layer3GearID","TotalCatch")
-
-y3= merge(y, y2, by= c("Year","Layer3GearID"), all.x=T)
-y3$Proportion= y3$Catch / y3$TotalCatch
-y3= y3[,c("Year","SpeciesGroupID","Layer3GearID","GearGroupID","FishingEntityID","CountryGroupID","Proportion")]
-
-z= merge(x, y3, by= c("Year","Layer3GearID","GearGroupID"), all.x=T)
-z$PropCatch= z$Catch * z$Proportion
-
-zm3= z[is.na(z$Proportion)==F,]
-znm3= z[is.na(z$Proportion),]
-
-zm3= zm3[,c("Year","FishingEntityID.y","CountryGroupID.y","Layer3GearID","GearGroupID","TaxonKey","SpeciesGroupID.x","PropCatch")]
-colnames(zm3)= c("Year","FishingEntityID","CountryGroupID","Layer3GearID","GearGroupID","TaxonKey","SpeciesGroupID","Catch")
-znm3= znm3[,c("Year","FishingEntityID.x","CountryGroupID.x","Layer3GearID","GearGroupID","TaxonKey","SpeciesGroupID.x","Catch")]
-colnames(znm3)= c("Year","FishingEntityID","CountryGroupID","Layer3GearID","GearGroupID","TaxonKey","SpeciesGroupID","Catch")
-
-#year
-y2= aggregate(y$Catch, by= list(y$Year), sum)
-colnames(y2)= c("Year","TotalCatch")
-
-y3= merge(y, y2, by= c("Year"), all.x=T)
-y3$Proportion= y3$Catch / y3$TotalCatch
-y3= y3[,c("Year","SpeciesGroupID","Layer3GearID","GearGroupID","FishingEntityID","CountryGroupID","Proportion")]
-
-z= merge(x, y3, by= c("Year"), all.x=T)
-z$PropCatch= z$Catch * z$Proportion
-
-zm4= z[is.na(z$Proportion)==F,]
-znm4= z[is.na(z$Proportion),]
-
-zm4= zm4[,c("Year","FishingEntityID.y","CountryGroupID.y","Layer3GearID.x","GearGroupID.x","TaxonKey","SpeciesGroupID.x","PropCatch")]
-colnames(zm4)= c("Year","FishingEntityID","CountryGroupID","Layer3GearID","GearGroupID","TaxonKey","SpeciesGroupID","Catch")
-
-x= rbind(y, zm1, zm2, zm3, zm4)
-
-iattc.N= aggregate(x$Catch, by= list(x$Year,x$FishingEntityID,x$CountryGroupID,x$Layer3GearID,x$GearGroupID,x$TaxonKey,x$SpeciesGroupID), sum)
-colnames(iattc.N)= c("Year","FishingEntityID","CountryGroupID","Layer3GearID","GearGroupID","TaxonKey","SpeciesGroupID","Catch")
-iattc.N= iattc.N[order(iattc.N$Year), ]
-
-#Export formatted nominal catch data file for matching
-write.table(iattc.N[order(iattc.N$Year),], "Formatted IATTC Nominal Catch For Spatial Matching.csv", sep=",", row.names=F)
-
+# Compile all in one df and export as csv
+compiled_match <- bind_rows(known_df, matching_result_1$matched_catch, 
+                            matching_result_2$matched_catch, matching_result_3$matched_catch,
+                            matching_result_4$matched_catch) |> arrange(Year)
+write.csv(compiled_match, "Formatted IATTC Nominal Catch For Spatial Matching.csv", row.names = F)
 #--------------------------------------------------Spatial data--------------------------------------------------
 
 #Clear any stored data
-rm(list=ls())
-
-#load the reshape package
-library(reshape)
+rm(list=setdiff(ls(), "proportional_catch"))
 
 #Read spatial catch data
 #Purse Seine
@@ -224,107 +166,40 @@ iattc.spat <- subset(iattc.spat, iattc.spat$BigCellID > 0)
 
 #Fishing entity 1000 split
 #Allocate catch out from "All countries" fishing entity (FishingEntityID= 1000). 
-x= iattc.spat[iattc.spat$FishingEntityID==1000,]
-y= iattc.spat[iattc.spat$FishingEntityID!=1000,]
+unknown_df= iattc.spat[iattc.spat$FishingEntityID==1000,]
+known_df= iattc.spat[iattc.spat$FishingEntityID!=1000,]
 
-#Matching by year, gear group, bigcellid, and species
-y2= aggregate(y$Catch, by= list(y$Year, y$TaxonKey, y$GearGroupID, y$BigCellID), sum)
-colnames(y2)= c("Year","TaxonKey","GearGroupID","BigCellID","TotalCatch")
+# Match and group based on Year, TaxonKey, and GearGroup, and BigCellID
+grouping_cols <- c("Year","TaxonKey","GearGroupID", "BigCellID")
+matching_result_1 <- proportional_catch(known_df, unknown_df, grouping_cols, is_spat=TRUE)
 
-y3= merge(y, y2, by= c("Year","TaxonKey","GearGroupID","BigCellID"), all.x=T)
-y3$Proportion= y3$Catch / y3$TotalCatch
-y3= y3[,c("Year","GearGroupID","FishingEntityID","CountryGroupID","TaxonKey","SpeciesGroupID","BigCellID","Proportion")]
+# Match and group based on Year, TaxonKey, and GearGroup
+grouping_cols <- c("Year", "TaxonKey", "GearGroupID")
+matching_result_2 <- proportional_catch(known_df, matching_result_1$unmatched_catch, grouping_cols, is_spat=TRUE)
 
-z= merge(x, y3, by= c("Year","GearGroupID","TaxonKey","SpeciesGroupID","BigCellID"), all.x=T)
-z$PropCatch= z$Catch * z$Proportion
+# Match and group based on Year, SpeciesGroup and GearGroup
+grouping_cols <- c("Year", "GearGroupID", "SpeciesGroupID")
+matching_result_3 <- proportional_catch(known_df, matching_result_2$unmatched_catch, grouping_cols, is_spat = TRUE)
 
-zm1= z[is.na(z$Proportion)==F,]
-znm1= z[is.na(z$Proportion),]
+# Compile all into one dataframe and export as csv
+compiled_match <- bind_rows(known_df, matching_result_1$matched_catch,
+                            matching_result_2$matched_catch,
+                            matching_result_3$matched_catch) |> 
+  arrange(Year) |> 
+  select(Year, FishingEntityID, CountryGroupID,
+         GearGroupID, TaxonKey, SpeciesGroupID,
+         BigCellID, Catch)  |> 
+  group_by(Year, FishingEntityID, CountryGroupID,
+           GearGroupID, TaxonKey, SpeciesGroupID,
+           BigCellID) |>
+  summarise(Catch = sum(Catch), .groups = "keep")
 
-zm1= zm1[,c("Year","FishingEntityID.y","CountryGroupID.y","GearGroupID","TaxonKey","SpeciesGroupID","BigCellID","PropCatch")]
-colnames(zm1)= c("Year","FishingEntityID","CountryGroupID","GearGroupID","TaxonKey","SpeciesGroupID","BigCellID","Catch")
-
-znm1= znm1[,c("Year","FishingEntityID.x","CountryGroupID.x","GearGroupID","TaxonKey","SpeciesGroupID","BigCellID","Catch")]
-colnames(znm1)= c("Year","FishingEntityID","CountryGroupID","GearGroupID","TaxonKey","SpeciesGroupID","BigCellID","Catch")
-
-#Matching by year, gear group, and species
-y2= aggregate(y$Catch, by= list(y$Year, y$TaxonKey, y$GearGroupID), sum)
-colnames(y2)= c("Year","TaxonKey","GearGroupID","TotalCatch")
-
-y3= merge(y, y2, by= c("Year","TaxonKey","GearGroupID"), all.x=T)
-y3$Proportion= y3$Catch / y3$TotalCatch
-y3= y3[,c("Year","GearGroupID","FishingEntityID","CountryGroupID","TaxonKey","SpeciesGroupID","BigCellID","Proportion")]
-
-z= merge(znm1, y3, by= c("Year","GearGroupID","TaxonKey","SpeciesGroupID"), all.x=T)
-z$PropCatch= z$Catch * z$Proportion
-
-zm2= z[is.na(z$Proportion)==F,]
-znm2= z[is.na(z$Proportion),]
-
-zm2= zm2[,c("Year","FishingEntityID.y","CountryGroupID.y","GearGroupID","TaxonKey","SpeciesGroupID","BigCellID.x","PropCatch")]
-colnames(zm2)= c("Year","FishingEntityID","CountryGroupID","GearGroupID","TaxonKey","SpeciesGroupID","BigCellID","Catch")
-
-znm2= znm2[,c("Year","FishingEntityID.x","CountryGroupID.x","GearGroupID","TaxonKey","SpeciesGroupID","BigCellID.x","Catch")]
-colnames(znm2)= c("Year","FishingEntityID","CountryGroupID","GearGroupID","TaxonKey","SpeciesGroupID","BigCellID","Catch")
-
-#Matching by year, gear group, species group
-y2= aggregate(y$Catch, by= list(y$Year, y$GearGroupID, y$SpeciesGroupID), sum)
-colnames(y2)= c("Year","GearGroupID","SpeciesGroupID","TotalCatch")
-
-y3= merge(y, y2, by= c("Year","GearGroupID","SpeciesGroupID"), all.x=T)
-y3$Proportion= y3$Catch / y3$TotalCatch
-y3= y3[,c("Year","GearGroupID","FishingEntityID","CountryGroupID","TaxonKey","SpeciesGroupID","BigCellID","Proportion")]
-
-z= merge(znm2, y3, by= c("Year","GearGroupID","SpeciesGroupID"), all.x=T)
-z$PropCatch= z$Catch * z$Proportion
-
-zm3= z[is.na(z$Proportion)==F,]
-znm3= z[is.na(z$Proportion),]
-
-zm3= zm3[,c("Year","FishingEntityID.y","CountryGroupID.y","GearGroupID","TaxonKey.y","SpeciesGroupID","BigCellID.x","PropCatch")]
-colnames(zm3)= c("Year","FishingEntityID","CountryGroupID","GearGroupID","TaxonKey","SpeciesGroupID","BigCellID","Catch")
-
-znm3= znm3[,c("Year","FishingEntityID.x","CountryGroupID.x","GearGroupID","TaxonKey.x","SpeciesGroupID","BigCellID.x","Catch")]
-colnames(znm3)= c("Year","FishingEntityID","CountryGroupID","GearGroupID","TaxonKey","SpeciesGroupID","BigCellID","Catch")
-
-#Matching by year and species group
-#drop year, no match for 1958, so move to only consider 1959
-y2= aggregate(y$Catch, by= list(y$TaxonKey, y$GearGroupID), sum)
-colnames(y2)= c("TaxonKey","GearGroupID","TotalCatch")
-y4 <- y[y$Year==1959,]
-
-#then merge on y4, where year =1959
-y3= merge(y4, y2, by= c("TaxonKey","GearGroupID"), all.x=T)
-
-y3$Proportion= y3$Catch / y3$TotalCatch
-y3= y3[,c("Year","GearGroupID","FishingEntityID","CountryGroupID","TaxonKey","SpeciesGroupID","BigCellID","Proportion")]
-
-z= merge(znm3, y3, by= c("TaxonKey","GearGroupID"), all.x=T)
-z$PropCatch= z$Catch * z$Proportion
-
-zm4= z[is.na(z$Proportion)==F,]
-znm4= z[is.na(z$Proportion),]
-
-zm4= zm4[,c("Year.x","FishingEntityID.y","CountryGroupID.y","GearGroupID","TaxonKey","SpeciesGroupID.y","BigCellID.x","PropCatch")]
-colnames(zm4)= c("Year","FishingEntityID","CountryGroupID","GearGroupID","TaxonKey","SpeciesGroupID","BigCellID","Catch")
-
-z= rbind(zm1, zm2, zm3, zm4)  #Join all the matched data
-y= iattc.spat[iattc.spat$FishingEntityID!=1000,c("Year","FishingEntityID","CountryGroupID","GearGroupID","TaxonKey","SpeciesGroupID","BigCellID","Catch")]
-
-x= rbind(y, z) #Join the split 'All countries' data with the other data
-
-iattc.spat= aggregate(x$Catch, by= list(x$Year, x$FishingEntityID, x$CountryGroupID, x$GearGroupID, x$TaxonKey, x$SpeciesGroupID, x$BigCellID), sum) #Sum up any repeated entries (due to the split-up)
-colnames(iattc.spat)= c("Year","FishingEntityID","CountryGroupID","GearGroupID","TaxonKey","SpeciesGroupID","BigCellID","Catch")
-
-#Export formatted nominal catch data file for matching
-write.table(iattc.spat[order(iattc.spat$Year),], "Formatted IATTC Spatial Catch For Spatial Matching.csv", sep=",", row.names=F)
+write.csv(compiled_match, "Formatted IATTC Spatial Catch For Spatial Matching.csv", row.names = F)
 
 #=============================================================================================================
 #==SECTION I: INITIAL DATA AND TRANSFORMATION
 #=============================================================================================================
 rm(list=ls())
-
-library(reshape)
 
 #1.Read in databases of nominal and spatialized catch by ocean
 nom=read.csv("Formatted IATTC Nominal Catch For Spatial Matching.csv",sep=",",header=T)	#Yearly nominal catch
@@ -712,44 +587,6 @@ ccatch=function(country=x)
 agc= aggregate(db.match$Catch, by= list(db.match$Year, db.match$MatchID),sum)
 colnames(agc)= c("Year","MatchID","Catch")
 write.table(agc, "OUTPUT IATTC Catch by Year and MatchID.csv", sep=",",row.names=F, quote=F)
-
-##================================================Old Code is below.==========================================
-
-#=========================Testing===========================================#
-#db.nomatch = subset( merge(db.nomatch, cbind("NID"=sort(unique(db.match$NID)), "Match"=1), by="NID",all.x=T), is.na(Match) )[,-c(11)]
-##Refine db.nomatch data 
-#
-#db.nomatch= db.nomatch[,colnames(nom)]	#Reset columns in non-matched database
-#
-#
-#sum(db.nomatch$Catch) #Nomatch is equal to 0?
-#
-#
-#sum(db.match$Catch)/sum(nom$Catch) #Matched % is equal to 1?
-#
-####STOP###
-##Aggregate potential duplicate category values to reduce size of matched database, drop NID column
-#db.match <- aggregate(db.match$Catch, by= list(db.match$Year,db.match$FishingEntityID,db.match$Layer3GearID,db.match$TaxonKey,db.match$BigCellID,db.match$MatchID), sum)
-#colnames(db.match) <- c("Year","FishingEntityID","Layer3GearID","TaxonKey","BigCellID","MatchID","Catch")
-#db.match$RFMOID <- 5  #RFMO i.d. for IATTC = 5
-#db.match<- db.match[ order(db.match$Year), c("RFMOID","Year","FishingEntityID","Layer3GearID","TaxonKey","BigCellID","MatchID","Catch") ]
-#
-#write.table(db.match[1:1000000, ], "OUTPUT IATTC_Re-Run Spatialized Catch 1 of 4.csv", sep=",", row.names=F, quote=F)
-#write.table(db.match[1000001:2000000,], "OUTPUT IATTC_Re-Run Spatialized Catch 2 of 4.csv", sep=",", row.names=F, quote=F)
-#write.table(db.match[2000001:3000000, ], "OUTPUT IATTC_Re-Run Spatialized Catch 3 of 4.csv", sep=",", row.names=F, quote=F)
-#write.table(db.match[3000000:3159485, ], "OUTPUT IATTC_Re-Run Spatialized Catch 4 of 4.csv", sep=",", row.names=F, quote=F)
-#stop("SHOULD BE DONE...") #
-#
-#write.table(db.nomatch[1:1000000, ], "OUTPUT IATTC_Re-Run Spatialized Catch No Matches 1 of 1.csv", sep=",", row.names=F, quote=F)
-#
-##Country catch check, change index to desired FishingEntityID
-##After you read in the function, just type ccatch(#)
-#ccatch=function(country=x)
-#{
-#  cnom= sum( subset(nom, FishingEntityID==country)$Catch )
-#  cspat= sum( subset(db.match, FishingEntityID==country)$Catch )
-#  return(list(cnom=cnom, cspat=cspat))
-#}
 
 
 

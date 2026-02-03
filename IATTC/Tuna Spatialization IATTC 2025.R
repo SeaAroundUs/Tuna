@@ -49,6 +49,10 @@ matching_result_4 <- proportional_catch(known_df, matching_result_3$unmatched_ca
 compiled_match <- bind_rows(known_df, matching_result_1$matched_catch, 
                             matching_result_2$matched_catch, matching_result_3$matched_catch,
                             matching_result_4$matched_catch) |> arrange(Year)
+
+# Sanity check for if catch amount before and after formatting remains the same 
+if(!all.equal(sum(compiled_match$Catch), sum(combined_df$Catch)))print("Catch is missing after formatting.")
+
 write.csv(compiled_match, "Formatted IATTC Nominal Catch For Spatial Matching.csv", row.names = F)
 #--------------------------------------------------Spatial data--------------------------------------------------
 
@@ -93,7 +97,11 @@ spp.match= function(x= iattc.psb, y= iattc.psspp)
   
   colnames(z)= c("Year","Flag","Lat","Lon","TaxonKey","SpeciesGroupID","Catch")
   
-  return(z=z)
+  # Sanity Check for if catch before and after melting dataframe and assigning species name still remains the same
+  original_sum <- x |> select(-c(Year, Flag, Lat, Lon)) |> sum()
+  if(!all.equal(sum(z$Catch), original_sum))print("Catch differs after matching species names, double check that all species code in catch file present in species code file.")
+    
+  return(z)
 }
 
 iattc.psb2 <- spp.match(x=iattc.psb, y= iattc.psspp)
@@ -193,6 +201,9 @@ compiled_match <- bind_rows(known_df, matching_result_1$matched_catch,
            GearGroupID, TaxonKey, SpeciesGroupID,
            BigCellID) |>
   summarise(Catch = sum(Catch), .groups = "keep")
+
+# Sanity check for if catch amount before and after formatting remains the same 
+if(!all.equal(sum(compiled_match$Catch), sum(iattc.spat$Catch)))print("Catch is missing after formatting.")
 
 write.csv(compiled_match, "Formatted IATTC Spatial Catch For Spatial Matching.csv", row.names = F)
 

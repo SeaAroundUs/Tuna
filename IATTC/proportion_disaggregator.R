@@ -1,3 +1,4 @@
+library(tidyverse)
 #' Allocates Catch with unknown Fishing Entity Based on Proportions of Catch with Known Fishing Entity
 #'
 #' This function calculates the catch proportions of specific fishing entities 

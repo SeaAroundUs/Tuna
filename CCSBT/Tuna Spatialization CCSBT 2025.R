@@ -15,10 +15,6 @@ ccsbt.cel= read.table("input_codes/INPUT CCSBT Spatial Cell Codes.txt", header=T
 ccsbt.gea= read.table("input_codes/INPUT CCSBT Gear Codes.txt", header=T, sep="\t")
 cellid= read.csv("input_codes/INPUT CellTypeID.csv", sep=",")
 
-#SO Aligned BigCellTypeID columns
-names(cellid)[names(cellid) == "big_cell_type_id"] <- "BigCellTypeID"
-names(cellid)[names(cellid) == "big_cell_id"] <- "BigCellID"
-
 #Exclude entries with no catch or, for spatial data, month or location data
 ccsbt.n= ccsbt.n[ccsbt.n$Catch!=0,]
 #ccsbt.s= ccsbt.s[is.na(ccsbt.s$Month)==F,] #Month was already removed

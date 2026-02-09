@@ -160,9 +160,6 @@ iotc.are= read.csv("input_codes/INPUT IOTC Area Codes.csv", sep=",")
 iotc.gea= read.table("input_codes/INPUT IOTC Spatial Gear Codes.txt", header=T)
 iotc.cou= read.csv("input_codes/INPUT IOTC Spatial Country Codes.csv", sep=",")
 cellid= read.csv("input_codes/INPUT CellTypeID.csv",sep=",",header=T)
-#SO Aligned BigCellTypeID columns
-names(cellid)[names(cellid) == "big_cell_type_id"] <- "BigCellTypeID"
-names(cellid)[names(cellid) == "big_cell_id"] <- "BigCellID"
 
 #Surface data
 iotc.ss= iotc.ss[iotc.ss$CatchUnits=="MT",]

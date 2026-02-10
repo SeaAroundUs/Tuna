@@ -145,6 +145,7 @@ write.table(iotc.N, "Formatted IOTC Nominal Catch For Spatial Matching.csv", sep
 rm(list=ls())
 
 library(reshape)
+library(tidyverse)
 
 #Read spatial catch data
 iotc.ss= read.csv("INPUT IOTC Spatial Surface Catch for Formatting.csv", sep=",")
@@ -170,13 +171,19 @@ iotc.Ss= iotc.Ss[is.na(iotc.Ss$BigCellID)==F , ] #Only keep cells with a BigCell
 
 iotc.Ss= merge(iotc.Ss, iotc.cou, by=c("Fleet"), all.x=T)
 iotc.Ss= merge(iotc.Ss, iotc.gea, by=c("Gear"), all.x=T)
-iotc.Ss= iotc.Ss[ , -c(1:6) ] #Get rid of columns with outdated codes
+iotc.Ss <- iotc.Ss |> 
+  select(-c(Gear, Fleet, x, y, BigCellTypeID, Grid))
 
 #Re-shape data, discard empty catch entries, and aggregate catch by year
 iotc.Ss= melt(iotc.Ss, id= c("Year","MonthStart","CatchUnits","FishingEntityID","CountryGroupID","Layer3GearID","GearGroupID","AreaID","BigCellID"))
-colnames(iotc.Ss)[10:11]= c("SpeciesCode","Catch")
+iotc.Ss <- iotc.Ss |> 
+  rename(SpeciesCode = variable,
+         Catch = value)
 iotc.Ss= merge(iotc.Ss, iotc.spps, by= c("SpeciesCode"),all.x=T)
-iotc.Ss= iotc.Ss[is.na(iotc.Ss$Catch)==F, -c(1)]
+iotc.Ss <- iotc.Ss |> 
+  filter(!is.na(Catch)) |> 
+  select(-SpeciesCode)
+
 
 iotc.Ss= aggregate(iotc.Ss$Catch, by= list(iotc.Ss$Year,iotc.Ss$CatchUnits,iotc.Ss$FishingEntityID,iotc.Ss$CountryGroupID,iotc.Ss$Layer3GearID,iotc.Ss$GearGroupID,iotc.Ss$AreaID,iotc.Ss$BigCellID,iotc.Ss$TaxonKey,iotc.Ss$SpeciesGroupID), sum)
 iotc.Ss= iotc.Ss[ ,-c(2)]

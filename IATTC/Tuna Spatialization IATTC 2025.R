@@ -557,6 +557,8 @@ for(i in 1:length(fids)) #Loop over countries
 db.match= aggregate(db.match$Catch, by= list(db.match$Year,db.match$FishingEntityID,db.match$Layer3GearID,db.match$TaxonKey,db.match$BigCellID,db.match$MatchID), sum)
 colnames(db.match)= c("Year","FishingEntityID","Layer3GearID","TaxonKey","BigCellID","MatchID","Catch")
 
+sum(db.match$Catch)/sum(nom$Catch)
+
 ###STOP###
 #stop("SHOULD BE DONE...") #
 

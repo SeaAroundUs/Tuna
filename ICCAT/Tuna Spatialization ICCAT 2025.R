@@ -184,14 +184,12 @@ write.table(iccat.N, "Formatted ICCAT Nominal Catch For Spatial Matching.csv", s
 rm(list=ls())
 
 library(reshape)
+library(tidyverse)
 
 #Read spatial catch data
 iccat.s= read.csv("INPUT ICCAT Spatial Catch for Formatting.csv", sep=",")
 
 iccat.s= iccat.s[iccat.s$CatchUnit=="kg", ]
-
-#SO Remove SchoolTypeCode column
-#iccat.s <- iccat.s[ , -8, drop = FALSE]
 
 #Read spatial data codes
 iccat.spp= read.table("input_codes/INPUT ICCAT Spatial Species Codes.txt", header=T)
@@ -202,11 +200,15 @@ cellid= read.csv("input_codes/INPUT CellTypeID.csv",sep=",",header=T)
 
 #transform data into long form
 iccat.S <- melt(iccat.s, id= c("FleetID","GearCode","Year","SquareTypeCode","QuadID","Lat","Lon","CatchUnit"))
-colnames(iccat.S)[9:10] <- c("SpeciesCode","Catch")
 
-#remove rows with no spatial data and where catch=0
-iccat.S <- iccat.S[iccat.S$SquareTypeCode != "none",]
-iccat.S <- iccat.S[iccat.S$Catch != 0,]
+# rename column names and remove rows with no spatial catch or have catch = 0
+iccat.S <- iccat.S |> 
+  rename(SpeciesCode = variable,
+         Catch = value) |>
+  filter(SquareTypeCode!= "none", Catch !=0)
+
+# Sanity Check
+og_catch <- sum(iccat.S$Catch)
 
 #merge data with codes
 iccat.S= merge(iccat.S, iccat.cou, by= c("FleetID"), all.x=T)
@@ -215,8 +217,13 @@ iccat.S= merge(iccat.S, iccat.cel, by= c("SquareTypeCode","QuadID", "Lon","Lat")
 iccat.S <- merge(iccat.S, iccat.spp, by= c("SpeciesCode"), all.x=T)
 iccat.S= merge(iccat.S, cellid, by= c("BigCellTypeID", "x","y"), all.x=T)
 
+# Sanity check
+post_catch <- sum(iccat.S$Catch)
+
 #remove newly redundant columns, keep QuadID for all countries matching later
-iccat.S <- iccat.S[,-c(1:5,7:10)]
+iccat.S <- iccat.S |> select(QuadID, Year, CatchUnit, Catch, CountryGroupID, 
+                               FishingEntityID, Layer3GearID, GearGroupID,
+                               TaxonKey, SpeciesGroupID, BigCellID)
 
 #Identify the rows that don't match to a big cell and write a table to look at them
 iccat.NoMatch <- iccat.S[(is.na(iccat.S$BigCellID)==T),]

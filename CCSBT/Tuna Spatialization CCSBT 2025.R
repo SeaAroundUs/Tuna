@@ -52,9 +52,14 @@ z2= rbind(y,z)
 z3= aggregate(z2$Catch, by= list(z2$Year, z2$FishingEntityID, z2$CountryGroupID, z2$Layer3GearID, z2$GearGroupID, z2$OceanID), sum)
 colnames(z3)= colnames(y)
 
+# Sanity check for if catch amount before and after formatting remains the same 
+if(!isTRUE(all.equal(sum(ccsbt.N$Catch), sum(z3$Catch), tolerance = 1e-3)))print("Catch is missing after formatting.")
+
 ccsbt.N= z3
 ccsbt.N$TaxonKey= 600145	#Add southern bluefin tuna TaxonKey
 ccsbt.N= ccsbt.N[, c("Year","FishingEntityID","CountryGroupID","Layer3GearID","GearGroupID","OceanID","TaxonKey","Catch") ]
+
+
 
 write.table(ccsbt.N, "Formatted CCSBT Nominal Catch For Spatial Matching.csv", sep=",", row.names=F)
 
@@ -65,8 +70,9 @@ ccsbt.S= merge(ccsbt.s, ccsbt.soce, by= c("OceanName"), all.x=T)
 ccsbt.S= merge(ccsbt.S, ccsbt.gea, by= c("GearName"), all.x=T)
 ccsbt.S= merge(ccsbt.S, ccsbt.cel, by= c("Lat","Lon"), all.x=T)
 ccsbt.S= merge(ccsbt.S, cellid, by= c("x","y","BigCellTypeID"), all.x=T)
-
 ccsbt.S= ccsbt.S[ , c("Year","Layer3GearID","GearGroupID","OceanID","BigCellID","Catch") ]
+
+
 
 #Monthly data into yearly spatial data
 ccsbt.S= aggregate(ccsbt.S$Catch, by=list(ccsbt.S$Year, ccsbt.S$Layer3GearID,ccsbt.S$GearGroupID,ccsbt.S$OceanID,ccsbt.S$BigCellID) , sum)
@@ -74,6 +80,9 @@ colnames(ccsbt.S)= c("Year","Layer3GearID","GearGroupID","OceanID","BigCellID","
 
 ccsbt.S$TaxonKey= 600145	#Add southern bluefin tuna TaxonKey
 ccsbt.S= ccsbt.S[, c("Year","Layer3GearID","GearGroupID","OceanID","BigCellID","TaxonKey","Catch") ]
+
+# Sanity check for if catch amount before and after formatting remains the same 
+if(!isTRUE(all.equal(sum(ccsbt.S$Catch), sum(ccsbt.s$Catch), tolerance = 1e-3)))print("Catch is missing after formatting.")
 
 write.table(ccsbt.S, "Formatted CCSBT Spatial Catch For Spatial Matching.csv", sep=",", row.names=F)
 
@@ -415,168 +424,3 @@ colnames(db.match)= c("Year","FishingEntityID","Layer3GearID","TaxonKey","BigCel
 db.match$RFMOID= 3  #RFMO i.d. for CCSBT = 3
 db.match= db.match[ , c("RFMOID","Year","FishingEntityID","Layer3GearID","TaxonKey","BigCellID","MatchID", "Catch") ]
 write.table(db.match[order(db.match$Year),], "Final CCSBT Spatialized Catch with MatchID 1 of 1.csv", sep=",", row.names=F, quote=F)
-
-
-#================================Old code is below============================================================
-#=============================================================================================================
-#==SECTION II: MATCHING BY Year/Layer3GearID/GearGroupID/OceanID/TaxonKey
-#=============================================================================================================
-#nom.data= nom
-#match.categ= list(spat$Year, spat$Layer3GearID, spat$GearGroupID, spat$TaxonKey, spat$OceanID)
-#merge.categ= c("Year","Layer3GearID","GearGroupID","TaxonKey","OceanID")
-#match.categ.names= c(merge.categ,"TotalCatch")
-#
-#
-##1.Sum up the total catch, by all categories, in all reported spatial cells.
-#
-#ct.all= aggregate(spat$Catch,by= match.categ,sum)  #Total catch in all cells, all categories
-#
-#colnames(ct.all)= match.categ.names #Add matching column names
-#
-##2.Transform reported catch per cell into proportions of the total for all cells, by all categories.
-#
-#spat.all= merge(spat,ct.all,by= merge.categ, all.x=T)	#Spatialized catch total in all cells by Year/GearGroupID/TaxonKey
-#
-#spat.all$Proportion= spat.all$Catch / spat.all$TotalCatch	#Proportion of catch per cell = catch / total catch in cells reported for that category combo
-#
-#spat.all= spat.all[,c(merge.categ,"BigCellID","Proportion")]	#Remove the catch per cell in this dataframe (but leave the proportions)
-#
-##3.Match nominal and cell proportion catch by all categories.
-#new.db= merge(nom.data,spat.all,by= merge.categ,all.x=T)#Match and merge the spatialized (with proportions) and 
-##nominal catch databases into a new database (db)
-#new.db$SpatCatch= new.db$Catch * new.db$Proportion	#New spatialized catch = nominal catch * spatial proportions
-#
-##4.Split the new database into matched and non-matched databases (makes computation faster)
-#db.match= subset(new.db,is.na(BigCellID)==F)	#Separate the new database into matched (d for "data")
-#
-#db.nomatch= subset(new.db,is.na(BigCellID))	#and non-matched (nd for "no data") records
-#
-##5.Check that all catch is accounted for (whether matched or not) and return proportion of catch that was not matched at this stage
-#print(c("Current refinement",sum(c(db.match$SpatCatch,db.nomatch$Catch)),"Nominal",tot.nom.ct))
-#print(c("Proportion Matched Tonnes", 1-( sum(db.nomatch$Catch)/tot.nom.ct) ) )
-#
-##6.Reset columns so that they match the original nominal and spatial databases (to avoid potential indexing screw-ups) 
-#db.match= db.match[,final.categ]	#Re-order columns for matched database
-#colnames(db.match)= final.categ.names
-#
-#db.nomatch= db.nomatch[,colnames(nom)]	#Reset columns in non-matched database
-#
-#rm(list=c("ct.all","spat.all","new.db","nom.data"))	#MEMORY CLEAN-UP
-#
-##=============================================================================================================
-##==SECTION III: MATCHING BY Year/GearGroupID/OceanID/TaxonKey
-##=============================================================================================================
-#
-#nom.data= db.nomatch
-#match.categ= list(spat$Year, spat$GearGroupID, spat$OceanID, spat$TaxonKey)
-#merge.categ= c("Year","GearGroupID","OceanID","TaxonKey")
-#match.categ.names= c(merge.categ,"TotalCatch")
-#
-#
-#data.match= function( nom.data, db.match, match.categ, merge.categ, match.categ.names )
-#{
-#  
-#  ct.all= aggregate(spat$Catch,by= match.categ,sum)
-#  colnames(ct.all)= match.categ.names 
-#  spat.all= merge(spat,ct.all,by= merge.categ,all.x=T)	
-#  spat.all$Proportion= spat.all$Catch / spat.all$TotalCatch	
-#  spat.all= spat.all[,c(merge.categ,"BigCellID","Proportion")]	
-#  new.db= merge(nom.data,spat.all,by= merge.categ,all.x=T)
-#  new.db$SpatCatch= new.db$Catch * new.db$Proportion	
-#  db.match.new= subset(new.db,is.na(BigCellID)==F)	
-#  db.nomatch= subset(new.db,is.na(BigCellID))	
-#  print(c("Current refinement",sum(c(db.match.new$SpatCatch,db.nomatch$Catch)),"Nominal",sum(nom.data$Catch)))
-#  print(c("Proportion Matched Tonnes",1-( sum(db.nomatch$Catch)/tot.nom.ct) ))
-#  db.match.new= db.match.new[,final.categ]	
-#  colnames(db.match.new)= final.categ.names
-#  db.match= rbind(db.match, db.match.new)
-#  db.nomatch= db.nomatch[,colnames(nom)]	
-#  rm(list=c("ct.all","spat.all","new.db","nom.data","db.match.new")) 
-#  
-#  return(list(db.nomatch=db.nomatch, db.match=db.match))
-#  
-#}
-#
-#db.nomatch= data.match(nom.data, db.match, match.categ, merge.categ, match.categ.names)$db.nomatch
-#db.match= data.match(nom.data, db.match, match.categ, merge.categ, match.categ.names)$db.match
-#
-#
-##=============================================================================================================
-##==SECTION IV: MATCHING BY Year/OceanID/TaxonKey
-##=============================================================================================================
-#
-#nom.data= db.nomatch
-#match.categ= list(spat$Year, spat$OceanID, spat$TaxonKey)
-#merge.categ= c("Year","OceanID","TaxonKey")
-#match.categ.names= c(merge.categ,"TotalCatch")
-#
-#db.nomatch= data.match(nom.data, db.match, match.categ, merge.categ, match.categ.names)$db.nomatch
-#db.match= data.match(nom.data, db.match, match.categ, merge.categ, match.categ.names)$db.match
-#
-#
-##=============================================================================================================
-##==SECTION V: MATCHING BY Year/GearGroupID/TaxonKey
-##=============================================================================================================
-#
-#nom.data= db.nomatch
-#match.categ= list(spat$Year, spat$GearGroupID, spat$TaxonKey)
-#merge.categ= c("Year", "GearGroupID","TaxonKey")
-#match.categ.names= c(merge.categ,"TotalCatch")
-#
-#db.nomatch= data.match(nom.data, db.match, match.categ, merge.categ, match.categ.names)$db.nomatch
-#db.match= data.match(nom.data, db.match, match.categ, merge.categ, match.categ.names)$db.match
-#
-#
-##=============================================================================================================
-##==SECTION VI: MATCHING BY Layer3GearID/GearGroupID/OceanID/TaxonKey
-##=============================================================================================================
-#
-#nom.data= db.nomatch
-#match.categ= list(spat$Layer3GearID, spat$GearGroupID, spat$TaxonKey, spat$OceanID)
-#merge.categ= c("Layer3GearID","GearGroupID","TaxonKey","OceanID")
-#match.categ.names= c(merge.categ,"TotalCatch")
-#
-#db.nomatch= data.match(nom.data, db.match, match.categ, merge.categ, match.categ.names)$db.nomatch
-#db.match= data.match(nom.data, db.match, match.categ, merge.categ, match.categ.names)$db.match
-#
-##=============================================================================================================
-##==SECTION VII: MATCHING BY GearGroupID/OceanID/TaxonKey
-##=============================================================================================================
-#
-#nom.data= db.nomatch
-#match.categ= list(spat$GearGroupID, spat$TaxonKey, spat$OceanID)
-#merge.categ= c("GearGroupID","TaxonKey","OceanID")
-#match.categ.names= c(merge.categ,"TotalCatch")
-#
-#db.nomatch= data.match(nom.data, db.match, match.categ, merge.categ, match.categ.names)$db.nomatch
-#db.match= data.match(nom.data, db.match, match.categ, merge.categ, match.categ.names)$db.match
-#
-#
-##=============================================================================================================
-##==SECTION VIII: MATCHING BY TaxonKey/OceanID
-##=============================================================================================================
-#
-#nom.data= db.nomatch
-#match.categ= list(spat$TaxonKey, spat$OceanID)
-#merge.categ= c("TaxonKey","OceanID")
-#match.categ.names= c(merge.categ,"TotalCatch")
-#
-#db.nomatch= data.match(nom.data, db.match, match.categ, merge.categ, match.categ.names)$db.nomatch
-#db.match= data.match(nom.data, db.match, match.categ, merge.categ, match.categ.names)$db.match
-#
-#
-#
-#db.match= db.match[order(db.match$Year),]
-#
-#db.match= aggregate(db.match$Catch, by= list(db.match$Year,db.match$FishingEntityID,db.match$Layer3GearID,db.match$TaxonKey,db.match$BigCellID), sum)
-#colnames(db.match)= c("Year","FishingEntityID","Layer3GearID","TaxonKey","BigCellID","Catch")
-#
-#
-#
-##EXPORT DATA
-#
-#db.match$RFMOID= 3  #RFMO i.d. for CCSBT = 3
-#
-#db.match= db.match[ , c("RFMOID","Year","FishingEntityID","Layer3GearID","TaxonKey","BigCellID","Catch") ]
-#
-#write.table(db.match[order(db.match$Year),], "OUTPUT CCSBT Spatialized Catch 1 of 1.csv", sep=",", row.names=F, quote=F)
